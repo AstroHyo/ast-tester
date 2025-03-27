@@ -1,210 +1,96 @@
-import { App, Octokit } from "octokit";
+//The below is from a github tutorial
+//https://docs.github.com/en/apps/creating-github-apps/writing-code-for-a-github-app/building-a-github-app-that-responds-to-webhook-events
+// These are the dependencies for this file.
+//
+// You installed the `dotenv` and `octokit` modules earlier. The `@octokit/webhooks` 
+// is a dependency of the `octokit` module, so you don't need to install it separately. The `fs` and `http` dependencies are built-in Node.js modules.
+import dotenv from "dotenv";
+import {App} from "octokit";
+import {createNodeMiddleware} from "@octokit/webhooks";
 import fs from "fs";
-// import type { Webhooks } from '@octokit/webhooks';
+import http from "http";
 
-import axios from "axios";
-import { PRWebhookPayload } from "../utils/types.js";
-import { extractCleanCodeFromDiff } from "../utils/utils.js";
-import { config } from "../config/index.js";
-import { parseCode } from "./code-parser-service.js";
+// This reads your `.env` file and adds the variables from that file to the `process.env` object in Node.js.
+dotenv.config();
 
-// Read the private key for GitHub App authentication.
-const privateKey = fs.readFileSync(config.privateKeyPath!, "utf8");
-// const SCHEMA = require("@octokit/webhooks-schemas");
+// This assigns the values of your environment variables to local variables.
+const appId = process.env.APP_ID;
+const webhookSecret = process.env.WEBHOOK_SECRET;
+const privateKeyPath = process.env.PRIVATE_KEY_PATH;
 
-// Create an instance of the GitHub App. Authentication using JWT is handled behind-the-scenes.
-const app: App = new App({
-  appId: config.appId!,
+// This reads the contents of your private key file.
+const privateKey = fs.readFileSync(privateKeyPath, "utf8");
+
+// This creates a new instance of the Octokit App class.
+const app = new App({
+  appId: appId,
   privateKey: privateKey,
   webhooks: {
-    secret: config.webhookSecret,
+    secret: webhookSecret
   },
 });
 
-/**
- * Fetches the diff of a pull request.
- * @param octokit - Authenticated Octokit instance.
- * @param owner - Repository owner.
- * @param repo - Repository name.
- * @param pull_number - Pull request number.
- * @returns The pull request diff as a string.
- */
-async function fetchPullRequestDiff(
-  octokit: Octokit,
-  owner: string,
-  repo: string,
-  pull_number: number
-): Promise<string> {
-  //GET rquest to fetch the associated resource information for a specified pull request
-  const { data: diffText } = await octokit.rest.pulls.get({
-    owner,
-    repo,
-    pull_number,
-    headers: {
-      Accept: "application/vnd.github.v3.diff",
-    },
-  });
-  console.log(diffText);
-  const formattedDiff = extractCleanCodeFromDiff(String(diffText));
-  console.log(formattedDiff);
-  return formattedDiff;
-}
+// This defines the message that your app will post to pull requests.
+const messageForNewPRs = `Thanks for opening a new PR! 
+The backend says hello world!
+TGIF!`;
 
-/**
- * Fetches the full content of a given file in a repository.
- * @param octokit - Authenticated Octokit instance.
- * @param owner - Repository owner.
- * @param repo - Repository name.
- * @param path - File path within the repository.
- * @returns The file's raw content as a string.
- */
-export async function fetchFullFileContent(
-  octokit: Octokit,
-  owner: string,
-  repo: string,
-  path: string
-): Promise<string> {
-  // Request the file content from GitHub using raw media type.
-  const response = await octokit.rest.repos.getContent({
-    owner,
-    repo,
-    path,
-    mediaType: {
-      format: "raw",
-    },
-  });
-
-  // If the response data is a string, return it directly.
-  if (typeof response.data === "string") {
-    return response.data;
-  }
-
-  // If the response data is an array, it means a directory was returned.
-  if (Array.isArray(response.data)) {
-    throw new Error(
-      `Expected a file but received a directory for path: ${path}`
-    );
-  }
-
-  // If the response data is an object representing a file, check if it has a 'content' property.
-  if (response.data.type === "file" && response.data.content) {
-    // Decode the Base64 encoded content to a UTF-8 string.
-    return Buffer.from(response.data.content, "base64").toString("utf8");
-  }
-
-  // If none of the above conditions are met, throw an error.
-  throw new Error(`Unable to fetch file content as string for path: ${path}`);
-}
-
-/**
- * Fetches the list of changed files in a pull request and returns an object
- * with filenames as keys and their full content as values.
- * @param octokit - Authenticated Octokit instance.
- * @param owner - Repository owner.
- * @param repo - Repository name.
- * @param pull_number - Pull request number.
- * @returns An object mapping filenames to their full file content.
- */
-export async function fetchPRFilesContent(
-  octokit: Octokit,
-  owner: string,
-  repo: string,
-  pull_number: number
-): Promise<{ [filename: string]: string }> {
-  // Retrieve the list of changed files in the PR.
-  const { data: changedFiles } = await octokit.rest.pulls.listFiles({
-    owner,
-    repo,
-    pull_number,
-  });
-
-  const filesContent: { [filename: string]: string } = {};
-
-  // Loop through each file and fetch its full content.
-  for (const file of changedFiles) {
-    try {
-      const content = await fetchFullFileContent(
-        octokit,
-        owner,
-        repo,
-        file.filename
-      );
-      filesContent[file.filename] = content;
-    } catch (error) {
-      console.error(`Error fetching content for file ${file.filename}:`, error);
-    }
-  }
-
-  return filesContent;
-}
-
-/**
- * Posts a comment on a pull request.
- * @param octokit - Authenticated Octokit instance.
- * @param owner - Repository owner.
- * @param repo - Repository name.
- * @param issue_number - Issue or pull request number.
- * @param body - Comment body.
- */
-async function postComment(
-  octokit: Octokit,
-  owner: string,
-  repo: string,
-  issue_number: number,
-  body: string
-): Promise<void> {
-  await octokit.rest.issues.createComment({
-    owner,
-    repo,
-    issue_number,
-    body,
-    headers: {
-      "x-github-api-version": "2022-11-28",
-    },
-  });
-}
-
-/**
- * Handles a pull request event: fetches the full content of changed files,
- * parses each file using Tree-sitter to generate an AST, and posts the ASTs
- * as a comment on the PR.
- * @param payload - The pull request webhook payload.
- */
-export async function handlePullRequestEvent(
-  payload: PRWebhookPayload
-): Promise<void> {
-  const octokit = await app.getInstallationOctokit(payload.installation.id);
-  const owner: string = payload.repository.owner.login;
-  const repo: string = payload.repository.name;
-  const pull_number: number = payload.pull_request.number;
+// This adds an event handler that your code will call later. When this event handler is called, it will log the event to the console. Then, it will use GitHub's REST API to add a comment to the pull request that triggered the event.
+async function handlePullRequestOpened({octokit, payload}) {
+  console.log(`Received a pull request event for #${payload.pull_request.number}`);
 
   try {
-    // Fetch the full content of all changed files in the PR.
-    const filesContent = await fetchPRFilesContent(
-      octokit,
-      owner,
-      repo,
-      pull_number
-    );
-
-    // Aggregate the AST for each file into a single report.
-    let astReport = "";
-    for (const [filename, code] of Object.entries(filesContent)) {
-      const tree = parseCode(code);
-      const astString = tree.rootNode.toString();
-      astReport += `### ${filename}\n\`\`\`\n${astString}\n\`\`\`\n\n`;
+    await octokit.request("POST /repos/{owner}/{repo}/issues/{issue_number}/comments", {
+      owner: payload.repository.owner.login,
+      repo: payload.repository.name,
+      issue_number: payload.pull_request.number,
+      body: messageForNewPRs,
+      headers: {
+        "x-github-api-version": "2022-11-28",
+      },
+    });
+  } catch (error) {
+    if (error.response) {
+      console.error(`Error! Status: ${error.response.status}. Message: ${error.response.data.message}`)
     }
-
-    // Use the aggregated AST report as the feedback.
-    const feedback = astReport;
-
-    // Post the AST feedback as a comment on the pull request.
-    await postComment(octokit, owner, repo, pull_number, feedback);
-    console.log(`Posted AST feedback comment on PR #${pull_number}`);
-  } catch (error: unknown) {
-    if (error instanceof Error) {
-      console.error(`Error handling PR event: ${error.message}`);
-    }
-    throw error;
+    console.error(error)
   }
-}
+};
+
+// This sets up a webhook event listener. When your app receives a webhook event from GitHub
+// with a `X-GitHub-Event` header value of `pull_request` and an `action` payload value of `opened`, 
+// it calls the `handlePullRequestOpened` event handler that is defined above.
+app.webhooks.on("pull_request.opened", handlePullRequestOpened);
+
+// This logs any errors that occur.
+app.webhooks.onError((error) => {
+  if (error.name === "AggregateError") {
+    console.error(`Error processing request: ${error.event}`);
+  } else {
+    console.error(error);
+  }
+});
+
+// This determines where your server will listen.
+//
+// For local development, your server will listen to port 3000 on `localhost`. When you deploy 
+// your app, you will change these values. For more information, see [Deploy your app](#deploy-your-app).
+const port = 3000;
+const host = 'localhost';
+const path = "/api/webhook";
+const localWebhookUrl = `http://${host}:${port}${path}`;
+
+// This sets up a middleware function to handle incoming webhook events.
+//
+// Octokit's `createNodeMiddleware` function takes care of generating this middleware function for you. The resulting middleware function will:
+//
+//    - Check the signature of the incoming webhook event to make sure that it matches your webhook secret. This verifies that the incoming webhook event is a valid GitHub event.
+//    - Parse the webhook event payload and identify the type of event.
+//    - Trigger the corresponding webhook event handler.
+const middleware = createNodeMiddleware(app.webhooks, {path});
+
+// This creates a Node.js server that listens for incoming HTTP requests (including webhook payloads from GitHub) on the specified port. When the server receives a request, it executes the `middleware` function that you defined earlier. Once the server is running, it logs messages to the console to indicate that it is listening.
+http.createServer(middleware).listen(port, () => {
+  console.log(`Server is listening for events at: ${localWebhookUrl}`);
+  console.log('Press Ctrl + C to quit.')
+});
