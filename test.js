@@ -1,6 +1,6 @@
 import "../style.css";
 import NotesWall from "./notesWall";
-
+///
 // Constants for class names and IDs
 const NOTE_CLASS = "note";
 const NOTE_TEXT_CLASS = "note-text";
