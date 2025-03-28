@@ -7,7 +7,7 @@ const NOTE_TEXT_CLASS = "note-text";
 const NOTE_EDIT_CLASS = "note-edit";
 const DELETE_BTN_CLASS = "delete-btn";
 
-class StickyNotesApp {
+class StickyNotesApp {.///
   #notesWall;
   #notesWallElement;
   #inputNewNote;
