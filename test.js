@@ -1,6 +1,11 @@
 import "../style.css";
-
 import NotesWall from "./notesWall";
+///
+// Constants for class names and IDs
+const NOTE_CLASS = "note";
+const NOTE_TEXT_CLASS = "note-text";
+const NOTE_EDIT_CLASS = "note-edit";
+const DELETE_BTN_CLASS = "delete-btn";
 
 class StickyNotesApp {
   #notesWall;
@@ -12,46 +17,27 @@ class StickyNotesApp {
     this.#notesWallElement = document.getElementById("notes-wall");
     this.#inputNewNote = document.getElementById("new-note");
 
-    this.#inputNewNote.addEventListener(
-      "keydown",
-      this.#handleKeyDownToCreateNewNote,
-    );
+    // Event listeners using arrow functions (no need to bind)
+    this.#inputNewNote.addEventListener("keydown", this.#handleKeyDownToCreateNewNote);
+    this.#notesWallElement.addEventListener("dblclick", this.#handleDoubleClickOnNoteElement);
+    this.#notesWallElement.addEventListener("keydown", this.#handleKeyDownToSaveNote);
+    this.#notesWallElement.addEventListener("blur", this.#handleBlurToSaveNote, true);
+    this.#notesWallElement.addEventListener("click", this.#handleClickOnRemoveNoteButton);
 
-    this.#notesWallElement.addEventListener(
-      "dblclick",
-      this.#handleDoubleClickOnNoteElement.bind(this),
-    );
-
-    this.#notesWallElement.addEventListener(
-      "keydown",
-      this.#handleKeyDownToSaveNote.bind(this),
-    );
-
-    this.#notesWallElement.addEventListener(
-      "blur",
-      this.#handleBlurToSaveNote.bind(this),
-      true,
-    );
-
-    this.#notesWallElement.addEventListener(
-      "click",
-      this.#handleClickOnRemoveNoteButton.bind(this),
-    );
-
-    document.addEventListener("DOMContentLoaded", this.#renderNotes.bind(this));
+    document.addEventListener("DOMContentLoaded", this.#renderNotes);
   }
 
-  // Helper Function to create note text element
-  #createNoteText(note) {
+  // Helper to create note text element
+  #createNoteText = (note) => {
     const noteText = document.createElement("div");
     noteText.id = `note-text-${note.id}`;
-    noteText.classList.add("p-4", "note-text");
+    noteText.classList.add("p-4", NOTE_TEXT_CLASS);
     noteText.innerText = note.text;
     return noteText;
-  }
+  };
 
-  // Helper Function to create note edit textarea element
-  #createNoteTextarea(note) {
+  // Helper to create note edit textarea element
+  #createNoteTextarea = (note) => {
     const noteEdit = document.createElement("textarea");
     noteEdit.id = `note-textarea-${note.id}`;
     noteEdit.classList.add(
@@ -69,16 +55,16 @@ class StickyNotesApp {
       "resize-none",
       "outline-rose-700",
       "outline-offset-0",
-      "note-edit",
-      "note",
-      "hover:scale-105",
+      NOTE_EDIT_CLASS,
+      NOTE_CLASS,
+      "hover:scale-105"
     );
     noteEdit.value = note.text;
     return noteEdit;
-  }
+  };
 
-  // Helper Function to create a remove button
-  #createNoteRemoveButton(note) {
+  // Helper to create a remove button
+  #createNoteRemoveButton = (note) => {
     const noteRemoveButton = document.createElement("button");
     noteRemoveButton.id = `note-delete-btn-${note.id}`;
     noteRemoveButton.classList.add(
@@ -90,17 +76,17 @@ class StickyNotesApp {
       "transition-opacity",
       "opacity-0",
       "cursor-pointer",
-      "delete-btn",
+      DELETE_BTN_CLASS,
       "top-1",
       "right-1",
-      "hover:opacity-100",
+      "hover:opacity-100"
     );
     noteRemoveButton.innerText = "🗑";
     return noteRemoveButton;
-  }
+  };
 
-  // Helper Function to create a note item
-  #createNoteItem(note) {
+  // Helper to create a complete note item
+  #createNoteItem = (note) => {
     const noteItem = document.createElement("div");
     noteItem.id = `note-item-${note.id}`;
     noteItem.classList.add(
@@ -114,60 +100,62 @@ class StickyNotesApp {
       "transform",
       "bg-yellow-200",
       "shadow-lg",
-      "note",
-      "hover:scale-105",
+      NOTE_CLASS,
+      "hover:scale-105"
     );
     noteItem.style.overflow = "hidden";
+
     const noteRemoveButton = this.#createNoteRemoveButton(note);
     const noteText = this.#createNoteText(note);
     const noteEdit = this.#createNoteTextarea(note);
     noteItem.append(noteRemoveButton, noteText, noteEdit);
     return noteItem;
-  }
+  };
 
-  // Function to render the notes
-  #renderNotes() {
+  // Render all notes using a document fragment for better performance
+  #renderNotes = () => {
     this.#notesWallElement.innerHTML = "";
-    const notesElements = this.#notesWall
-      .getNotes()
-      .map(this.#createNoteItem.bind(this));
-    this.#notesWallElement.append(...notesElements);
-  }
+    const fragment = document.createDocumentFragment();
+    this.#notesWall.getNotes().forEach((note) => {
+      fragment.appendChild(this.#createNoteItem(note));
+    });
+    this.#notesWallElement.appendChild(fragment);
+  };
 
-  // Event handler to create a new note item
+  // Handler to create a new note item on Enter (without Shift)
   #handleKeyDownToCreateNewNote = (event) => {
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
       const noteText = event.target.value.trim();
       if (noteText) {
         this.#notesWall.addNote(noteText);
-        event.target.value = ""; // Clear the input
+        event.target.value = "";
         this.#renderNotes();
       }
     } else if (event.key === "Enter" && event.shiftKey) {
+      // Insert a newline at the cursor position when Shift+Enter is pressed
       event.preventDefault();
-      const noteText = event.target;
-      const cursorPosition = noteText.selectionStart;
-      noteText.value =
-        noteText.value.substring(0, cursorPosition) +
+      const cursorPosition = event.target.selectionStart;
+      event.target.value =
+        event.target.value.substring(0, cursorPosition) +
         "\n" +
-        noteText.value.substring(cursorPosition);
-      noteText.selectionStart = noteText.selectionEnd = cursorPosition + 1;
+        event.target.value.substring(cursorPosition);
+      event.target.selectionStart = event.target.selectionEnd = cursorPosition + 1;
     }
   };
 
-  // Event handler to edit a note item
+  // Handler to enable note editing on double click
   #handleDoubleClickOnNoteElement = (event) => {
-    const noteItem = event.target.closest(".note");
+    const noteItem = event.target.closest(`.${NOTE_CLASS}`);
     if (noteItem) {
-      document.querySelectorAll(".note-edit").forEach((noteEdit) => {
+      // Hide all edit areas and show their corresponding note texts
+      document.querySelectorAll(`.${NOTE_EDIT_CLASS}`).forEach((noteEdit) => {
         noteEdit.style.display = "none";
         noteEdit.previousElementSibling.style.display = "block";
       });
 
-      const noteText = noteItem.querySelector(".note-text");
-      const noteEdit = noteItem.querySelector(".note-edit");
-
+      const noteText = noteItem.querySelector(`.${NOTE_TEXT_CLASS}`);
+      const noteEdit = noteItem.querySelector(`.${NOTE_EDIT_CLASS}`);
       noteText.style.display = "none";
       noteEdit.style.display = "block";
       noteEdit.classList.add("scale-105");
@@ -175,54 +163,48 @@ class StickyNotesApp {
     }
   };
 
-  // Event handler to save the note when clicking outside or pressing Enter/Escape
+  // Handler to save a note on blur event
   #handleBlurToSaveNote = (event) => {
-    if (event.target.classList.contains("note-edit")) {
-      const noteText = event.target.value.trim();
-      const noteId = this.#findTargetNoteElement(event.target);
-      const noteIdNumber = this.#parseNoteId(noteId);
-      if (noteText) {
-        this.#notesWall.editNote(noteIdNumber, noteText);
+    if (event.target.classList.contains(NOTE_EDIT_CLASS)) {
+      const updatedText = event.target.value.trim();
+      const noteItem = event.target.closest(`.${NOTE_CLASS}`);
+      const noteId = this.#parseNoteId(noteItem);
+      if (updatedText) {
+        this.#notesWall.editNote(noteId, updatedText);
         this.#renderNotes();
       }
     }
   };
 
-  // Event handler to save the edited target note element
+  // Handler to save the edited note on Enter/Escape keydown
   #handleKeyDownToSaveNote = (event) => {
-    if (event.target.classList.contains("note-edit")) {
-      const noteId = this.#parseNoteId(event.target);
-      if (
-        (event.key === "Enter" || event.key === "Escape") &&
-        !event.shiftKey
-      ) {
+    if (event.target.classList.contains(NOTE_EDIT_CLASS)) {
+      if ((event.key === "Enter" || event.key === "Escape") && !event.shiftKey) {
         event.preventDefault();
         this.#handleBlurToSaveNote(event);
       } else if (event.key === "Enter" && event.shiftKey) {
+        // Insert a newline at the cursor position for Shift+Enter
         event.preventDefault();
-        const noteText = event.target;
-        const cursorPosition = noteText.selectionStart;
-        noteText.value =
-          noteText.value.substring(0, cursorPosition) +
+        const cursorPosition = event.target.selectionStart;
+        event.target.value =
+          event.target.value.substring(0, cursorPosition) +
           "\n" +
-          noteText.value.substring(cursorPosition);
-        noteText.selectionStart = noteText.selectionEnd = cursorPosition + 1;
+          event.target.value.substring(cursorPosition);
+        event.target.selectionStart = event.target.selectionEnd = cursorPosition + 1;
       }
     }
   };
 
-  // Helper function to find the target todo element
-  #findTargetNoteElement = (element) => element.closest(".note");
+  // Parses the note ID from the note element's id attribute
+  #parseNoteId = (noteElement) =>
+    noteElement ? Number(noteElement.id.split("-").pop()) : -1;
 
-  // Helper function to parse the note id from the note element
-  #parseNoteId = (note) => (note ? Number(note.id.split("-").pop()) : -1);
-
-  // Event handler to remove the note
+  // Handler to remove the note when the remove button is clicked
   #handleClickOnRemoveNoteButton = (event) => {
     if (event.target.id.startsWith("note-delete-btn-")) {
-      const noteId = this.#findTargetNoteElement(event.target);
-      const noteIdNumber = this.#parseNoteId(noteId);
-      this.#notesWall.removeNote(noteIdNumber);
+      const noteItem = event.target.closest(`.${NOTE_CLASS}`);
+      const noteId = this.#parseNoteId(noteItem);
+      this.#notesWall.removeNote(noteId);
       this.#renderNotes();
     }
   };
