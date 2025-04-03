@@ -1,3 +1,7 @@
-const x = 2 + 3;
-const y = 3+ 4;
-//
+function add(a, b) {
+  if (a > b) {
+    return a - b;
+  } else {
+    return a + b;
+  }
+}
