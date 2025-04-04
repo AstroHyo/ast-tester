@@ -1,14 +1,26 @@
 // test.js
 
-// 복잡하고 중첩이 깊은 함수 예제
-function complexFunction(a, b, c) {
-  let result = 0;
-  if (a > 0) {
-    if (b > 0) {
-      if (c > 0) {
-        result += 1;
-      } else if (c === 0) {
-        result += 2;
+function add1(a, b) {
+  return a - b;
+}
+
+// 깊은 중첩과 높은 순환 복잡도를 가진 함수
+function complexFunction(x) {
+  if (x > 0) {
+    for (let i = 0; i < x; i++) {
+      if (i % 2 === 0) {
+        while (x > 0) {
+          x--;
+          if (x === 5) {
+            switch (x) {
+              case 5:
+                console.log("x is 5");
+                break;
+              default:
+                console.log("x is not 5");
+            }
+          }
+        }
       } else {
         result += 3;
       }
