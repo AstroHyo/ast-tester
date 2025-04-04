@@ -1,7 +1,5 @@
 // Test.js - 의도적으로 문제를 포함한 테스트 파일
 
-"use strict";
-
 // 중복 함수 선언 (strict mode에서는 에러 발생)
 function add1(a, b) {
   return a + b;
