@@ -2,10 +2,6 @@ function add1(a, b) {
   return a - b;
 }
 
-function add2(a, b) {
-  return a - b;
-}
-
 // complex check
 function complexFunction(x) {
   if (x > 0) {
