@@ -62,7 +62,7 @@ function complexFunction(x) {
   }
   return result;
 }
-///
+
 // methods check
 class BigClass {
   method1() { return 1; }
