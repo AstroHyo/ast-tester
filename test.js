@@ -58,7 +58,7 @@ function complexFunction(x) {
   }
   return result;
 }
-
+///
 // 메서드가 많은 클래스를 통한 과도한 클래스 의존성 예제
 class BigClass {
   method1() { return 1; }
