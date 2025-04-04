@@ -3,7 +3,11 @@ function add1(a, b) {
   return a - b;
 }
 
+function add2(a, b) {
+  return a - b;
+}
 
+// complex check
 function complexFunction(x) {
   if (x > 0) {
     for (let i = 0; i < x; i++) {
@@ -59,7 +63,7 @@ function complexFunction(x) {
   return result;
 }
 ///
-// 메서드가 많은 클래스를 통한 과도한 클래스 의존성 예제
+// methods check
 class BigClass {
   method1() { return 1; }
   method2() { return 2; }
@@ -77,14 +81,14 @@ class BigClass {
   method14() { return 14; }
 }
 
-// 중복 코드가 있는 함수 예제
+// duplicated logic
 function duplicateCodeFunction(a) {
-  // 중복되는 계산 로직
+  // 1
   let x = a + 10;
   let y = a * 2;
   let z = x + y;
 
-  // 동일한 로직이 다시 반복됨 (중복 코드)
+  // 2
   let x2 = a + 10;
   let y2 = a * 2;
   let z2 = x2 + y2;
@@ -92,7 +96,7 @@ function duplicateCodeFunction(a) {
   return z + z2;
 }
 
-// 함수 호출 (실행을 위한 간단한 예)
+// function call
 console.log("Complex Function Result:", complexFunction(1, 2, 3));
 const bc = new BigClass();
 console.log("BigClass method1:", bc.method1());
