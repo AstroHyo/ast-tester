@@ -1,9 +1,12 @@
-// test.js
 function add1(a, b) {
   return a - b;
 }
 
 function add2(a, b) {
+  return a - b;
+}
+
+function add3(a, b) {
   return a - b;
 }
 
