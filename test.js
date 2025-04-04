@@ -3,6 +3,11 @@ function add1(a, b) {
   return a - b;
 }
 
+function add2(a, b) {
+  return a - b;
+}
+
+// complex check
 function complexFunction(x) {
   if (x > 0) {
     for (let i = 0; i < x; i++) {
@@ -57,7 +62,8 @@ function complexFunction(x) {
   }
   return result;
 }
-///
+
+// methods check
 class BigClass {
   method1() { return 1; }
   method2() { return 2; }
@@ -75,11 +81,14 @@ class BigClass {
   method14() { return 14; }
 }
 
+// duplicated logic
 function duplicateCodeFunction(a) {
+  // 1
   let x = a + 10;
   let y = a * 2;
   let z = x + y;
 
+  // 2
   let x2 = a + 10;
   let y2 = a * 2;
   let z2 = x2 + y2;
@@ -87,6 +96,7 @@ function duplicateCodeFunction(a) {
   return z + z2;
 }
 
+// function call
 console.log("Complex Function Result:", complexFunction(1, 2, 3));
 const bc = new BigClass();
 console.log("BigClass method1:", bc.method1());
