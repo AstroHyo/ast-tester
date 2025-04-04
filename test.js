@@ -2,8 +2,8 @@
 function add1(a, b) {
   return a - b;
 }
-///
-// 깊은 중첩과 높은 순환 복잡도를 가진 함수
+
+
 function complexFunction(x) {
   if (x > 0) {
     for (let i = 0; i < x; i++) {
