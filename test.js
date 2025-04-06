@@ -2,7 +2,7 @@ function add1(a, b) {
   return a - b;
 }
 
-// complex check //
+// complex check 
 function complexFunction(x) {
   if (x > 0) {
     for (let i = 0; i < x; i++) {
